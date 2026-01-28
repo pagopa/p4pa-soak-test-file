@@ -1,0 +1,128 @@
+# Run Automated Test in UAT environment
+
+trigger: none
+
+pool:
+  vmImage: ubuntu-22.04
+
+parameters:
+  - name: "TARGET_ENV"
+    displayName: "Target Environment"
+    type: string
+    default: "UAT"
+    values:
+      - "DEV"
+      - "UAT"
+
+  - name: "FILE_TYPE"
+    displayName: "IngestionFlowFileType"
+    type: string
+    default: "DP_INSTALLMENTS"
+    values:
+      - DP_INSTALLMENTS
+
+  - name: "N_ROWS"
+    displayName: "N. rows"
+    type: number
+    default: 1000
+
+  - name: "ORG_IPA_CODE"
+    displayName: "organizationIpaCode"
+    type: string
+    default: "IPA_TEST_2"
+
+variables:
+  - name: fileVersion_DP_INSTALLMENTS
+    value: 2_0-eng
+
+  # Resolved list of k6 script to execute
+  - name: FILE_VERSION
+    value: ${{ variables[format('fileVersion_{0}', parameters.FILE_TYPE)] }}
+
+  # Setting env specific settings
+  - ${{ if eq(parameters.TARGET_ENV, 'dev') }}:
+      - name: selfHostedAgentPool
+        value: $(DEV_AGENT_POOL)
+
+      - name: BASE_URL
+        value: https://api.dev.p4pa.pagopa.it/pu/bff/organizations
+      - name: TEMPORAL_BASE_URL
+        value: https://web.temporal.internal.dev.p4pa.pagopa.it
+      - name: DASHBOARD_URL
+        value: https://pagopa.atlassian.net/wiki/spaces/SPAC/pages/2565242887/PU+-+Soak+tests+-+API#:~:text=DEV%3A-,OPEX%20Workbook,-UAT%3A%20OPEX
+
+  - ${{ else }}:
+      - name: selfHostedAgentPool
+        value: $(UAT_AGENT_POOL)
+
+      - name: BASE_URL
+        value: https://api.uat.p4pa.pagopa.it/pu/bff/organizations
+      - name: TEMPORAL_BASE_URL
+        value: https://web.temporal.internal.uat.p4pa.pagopa.it
+      - name: DASHBOARD_URL
+        value: https://portal.azure.com/#@pagopait.onmicrosoft.com/resource/subscriptions/1b06ce19-c192-49b3-8418-0f5bf013ea5f/resourceGroups/p4pa-u-itn-payhub-workbook-rg/providers/Microsoft.Insights/workbooks/10f6d152-fe64-5e8f-8185-9ba2aa8805c4/workbook
+
+jobs:
+  - deployment: SoakTest
+    displayName: "Loading a '${{ parameters.FILE_TYPE }}' file having (${{ parameters.N_ROWS }}) rows on ${{ parameters.TARGET_ENV }} using organization ${{ parameters.ORG_IPA_CODE }}"
+    pool:
+      name: $(selfHostedAgentPool)
+    environment: ${{ upper(parameters.TARGET_ENV) }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+              displayName: Checkout
+              fetchDepth: 1
+
+            - script: |
+                python3 --version
+                pip3 --version
+              displayName: "Display Python version"
+            - script: |
+                python3 --version
+                python3 -m pip install --user pipenv
+                python3 -m pipenv sync
+              displayName: "Install requirements"
+
+            - task: DownloadSecureFile@1
+              displayName: "download postman environment"
+              name: postman_env
+              inputs:
+                secureFile: $(postmanEnvFile)
+
+            - script: |
+                function extractSecret() {
+                  SECRET_KEY=$1
+                  ENV_NAME=$2
+                  VALUE=$(jq ".values [] | select(.key==\"$SECRET_KEY\") | .value"  $(postman_env.secureFilePath))
+                  echo "##vso[task.setvariable variable=$ENV_NAME]$VALUE"
+                }
+
+                extractSecret client_secret-pu CLIENT_SECRET_PU_ENV
+              displayName: Read secrets
+
+            - script: |
+                AUTH_RESPONSE=`curl --location --request POST \
+                     '${{ variables.BASE_URL }}/pu/auth/oauth/token?client_id=piattaforma-unitaria_${{ parameters.ORG_IPA_CODE }}&grant_type=client_credentials&scope=openid&client_secret=${{ variables.CLIENT_SECRET_PU_ENV }}' \
+                     -d ""`
+                ACCESS_TOKEN=$(echo $AUTH_RESPONSE | jq .access_token)
+                
+                mkDir results
+                cd ./results
+                FILE_TO_UPLOAD=`python3 -m pipenv ../src/generateImportFile_${{ parameters.FILE_TYPE }}.py ${{ variables.FILE_VERSION }} ${{ parameters.N_ROWS }}`
+                
+                IMPORT_RESPONSE=`curl --location --globoff '${{ variables.BASE_URL }}/pu/fileshare/organization/$ORGANIZATION_ID/ingestionflowfiles?ingestionFlowFileType=${{ parameters.FILE_TYPE }}&fileOrigin=SIL' \
+                  --header 'Authorization: Bearer $ACCESS_TOKEN' \
+                    --form "ingestionFlowFile=@\"./$FILE_TO_UPLOAD\""`
+                INGESTION_FLOW_FILE_ID=$(echo IMPORT_RESPONSE | jq .ingestionFlowFileId)
+                
+                echo Imported ${{ parameters.FILE_TYPE }} with ingestionFlowFileId $INGESTION_FLOW_FILE_ID
+                echo Visit the following URL to monitor the import process:
+                echo ${{ variables.TEMPORAL_BASE_URL }}/namespaces/pu/workflows/DebtPositionIngestionFlowWF-$INGESTION_FLOW_FILE_ID
+                echo ""
+                echo Visit the following URL to monitor the application:
+                echo ${{ variables.DASHBOARD_URL }}
+
+              displayName: Generating & importing file
