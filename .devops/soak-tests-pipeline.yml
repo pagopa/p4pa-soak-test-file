@@ -98,7 +98,7 @@ jobs:
               name: fetchSecretFromKeyVault
               displayName: 'Fetch Secret from Key Vault using Azure CLI'
               inputs:
-                azureSubscription: '${{ parameters.azureServiceConnection }}'
+                azureSubscription: '${{ variables.azureServiceConnection }}'
                 scriptType: 'bash'
                 scriptLocation: 'inlineScript'
                 inlineScript: |
