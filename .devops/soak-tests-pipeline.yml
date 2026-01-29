@@ -143,7 +143,7 @@ jobs:
                      '${{ variables.BASE_URL }}/pu/auth/oauth/token?client_id=piattaforma-unitaria_${{ parameters.ORG_IPA_CODE }}&grant_type=client_credentials&scope=openid&client_secret=$(CLIENT_SECRET_PU_ENV)' \
                      -d ""`
                 ACCESS_TOKEN=$(echo $AUTH_RESPONSE | jq .access_token)
-                if [ "ACCESS_TOKEN" == "null" ]; then
+                if [ "$ACCESS_TOKEN" == "null" ]; then
                   echo "Cannot obtain an access token!"
                   exit 1
                 fi
