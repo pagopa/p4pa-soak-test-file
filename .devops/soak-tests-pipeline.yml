@@ -144,7 +144,7 @@ jobs:
                      -d ""`
                 ACCESS_TOKEN=$(echo $AUTH_RESPONSE | jq .access_token)
                 
-                mkDir results
+                mkdir results
                 cd ./results
                 FILE_TO_UPLOAD=`python3 -m pipenv ../src/generateImportFile_${{ parameters.FILE_TYPE }}.py ${{ variables.FILE_VERSION }} ${{ parameters.N_ROWS }}`
                 
