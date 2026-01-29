@@ -134,14 +134,17 @@ jobs:
                   VALUE=$(jq ".values [] | select(.key==\"$SECRET_KEY\") | .value"  $(postmanEnvFile))
                   echo "##vso[task.setvariable variable=$ENV_NAME]$VALUE"
                 }
-                echo POSTMAN FILE $(postmanEnvFile)
-                echo POSTMAN FILE2 ${{ variables.postmanEnvFile }}
+                
                 extractSecret client_secret-pu CLIENT_SECRET_PU_ENV
+                if [[ -z "${CLIENT_SECRET_PU_ENV}" ]]; then
+                  echo "Cannot find client_secret-pu!"
+                  exit 1
+                fi
               displayName: Read secrets
 
             - script: |
                 AUTH_RESPONSE=`curl -s --location --request POST \
-                     '${{ variables.BASE_URL }}/pu/auth/oauth/token?client_id=piattaforma-unitaria_${{ parameters.ORG_IPA_CODE }}&grant_type=client_credentials&scope=openid&client_secret=${{ variables.CLIENT_SECRET_PU_ENV }}' \
+                     '${{ variables.BASE_URL }}/pu/auth/oauth/token?client_id=piattaforma-unitaria_${{ parameters.ORG_IPA_CODE }}&grant_type=client_credentials&scope=openid&client_secret=$(CLIENT_SECRET_PU_ENV)' \
                      -d ""`
                 ACCESS_TOKEN=$(echo $AUTH_RESPONSE | jq .access_token)
                 if [ "ACCESS_TOKEN" == "null" ]; then
