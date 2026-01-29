@@ -178,7 +178,7 @@ jobs:
                   echo "Import response: $IMPORT_RESPONSE"
                 fi
                 
-                INGESTION_FLOW_FILE_ID=$(echo IMPORT_RESPONSE | jq .ingestionFlowFileId)
+                INGESTION_FLOW_FILE_ID=$(echo $IMPORT_RESPONSE | jq .ingestionFlowFileId)
                 if [[ -z "${INGESTION_FLOW_FILE_ID}" ]]; then
                   echo "Cannot read ingestionFlowFileId from response!"
                   exit 1
