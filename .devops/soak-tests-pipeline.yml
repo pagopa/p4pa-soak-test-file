@@ -134,7 +134,7 @@ jobs:
                   VALUE=$(jq ".values [] | select(.key==\"$SECRET_KEY\") | .value"  $(postmanEnvFile))
                   echo "##vso[task.setvariable variable=$ENV_NAME]$VALUE"
                 }
-
+                echo $(postmanEnvFile)
                 extractSecret client_secret-pu CLIENT_SECRET_PU_ENV
               displayName: Read secrets
 
@@ -147,6 +147,7 @@ jobs:
                   echo "Cannot obtain an access token!"
                   exit 1
                 fi
+                echo $ACCESS_TOKEN
                 
                 USERINFO_RESPONSE=`curl -s --location --request GET \
                   '${{ variables.BASE_URL }}/pu/auth/oauth/userinfo' \
