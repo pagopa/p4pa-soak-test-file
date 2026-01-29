@@ -136,10 +136,6 @@ jobs:
                 }
                 
                 extractSecret client_secret-pu CLIENT_SECRET_PU_ENV
-                if [[ -z "${CLIENT_SECRET_PU_ENV}" ]]; then
-                  echo "Cannot find client_secret-pu!"
-                  exit 1
-                fi
               displayName: Read secrets
 
             - script: |
