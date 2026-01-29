@@ -44,7 +44,7 @@ variables:
       - name: selfHostedAgentPool
         value: $(DEV_AGENT_POOL)
       - name: keyVaultName
-        value: p4pa-d-payhub-kv
+        value: $(DEV_KV_NAME)
       - name: azureServiceConnectionName
         value: $(DEV_AZURE_SERVICE_CONNECTION_NAME)
 
@@ -59,7 +59,7 @@ variables:
       - name: selfHostedAgentPool
         value: $(UAT_AGENT_POOL)
       - name: keyVaultName
-        value: p4pa-u-payhub-kv
+        value: $(UAT_KV_NAME)
       - name: azureServiceConnectionName
         value: $(UAT_AZURE_SERVICE_CONNECTION_NAME)
 
