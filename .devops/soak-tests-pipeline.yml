@@ -156,6 +156,7 @@ jobs:
                   echo "Cannot obtain organizationId!"
                   exit 1
                 fi
+                echo "Obtained accessToken for organization: ORGANIZATION_ID"
                 
                 PY_SCRIPT=./src/generateImportFile_${{ parameters.FILE_TYPE }}.py
                 chmod +x $PY_SCRIPT
@@ -165,6 +166,9 @@ jobs:
                   exit 1
                 fi
                 echo "Generated file to upload: $FILE_TO_UPLOAD"
+                
+                echo curl -s --location --globoff '${{ variables.BASE_URL }}/pu/fileshare/organization/$ORGANIZATION_ID/ingestionflowfiles?ingestionFlowFileType=${{ parameters.FILE_TYPE }}&fileOrigin=SIL' \
+                    --form "ingestionFlowFile=@\"./$FILE_TO_UPLOAD\""
                 
                 IMPORT_RESPONSE=`curl -s --location --globoff '${{ variables.BASE_URL }}/pu/fileshare/organization/$ORGANIZATION_ID/ingestionflowfiles?ingestionFlowFileType=${{ parameters.FILE_TYPE }}&fileOrigin=SIL' \
                   --header 'Authorization: Bearer $ACCESS_TOKEN' \
