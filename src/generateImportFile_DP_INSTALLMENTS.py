@@ -229,7 +229,10 @@ def create_ingestion_flow_file(num_rows, csv_version, dp_type_org_code):
 def main():
     version = str(sys.argv[1])
     num_rows = int(sys.argv[2])
-    dp_type_org_code = str(sys.argv[3])
+    dp_type_org_code = None
+
+    if len(sys.argv) > 3:
+        dp_type_org_code = str(sys.argv[3])
 
     # Validazione input
     error = False

@@ -31,6 +31,11 @@ parameters:
     type: string
     default: "IPA_TEST_2"
 
+  - name: "DP_TYPE_ORG_CODE"
+    displayName: "dpTypeOrgCode"
+    type: string
+    default: "FEATURE_TEST"
+
 variables:
   - name: fileVersion_DP_INSTALLMENTS
     value: 2_0-eng
@@ -161,7 +166,7 @@ jobs:
                 
                 PY_SCRIPT=./src/generateImportFile_${{ parameters.FILE_TYPE }}.py
                 chmod +x $PY_SCRIPT
-                FILE_TO_UPLOAD=`python3 -m pipenv run python $PY_SCRIPT ${{ variables.FILE_VERSION }} ${{ parameters.N_ROWS }}`
+                FILE_TO_UPLOAD=`python3 -m pipenv run python $PY_SCRIPT ${{ variables.FILE_VERSION }} ${{ parameters.N_ROWS }} ${{ parameters.DP_TYPE_ORG_CODE }}`
                 if [[ -z "${FILE_TO_UPLOAD}" ]]; then
                   echo "Cannot generate file to upload!"
                   exit 1
