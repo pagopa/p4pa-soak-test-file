@@ -49,7 +49,7 @@ variables:
         value: $(DEV_AZURE_SERVICE_CONNECTION_NAME)
 
       - name: BASE_URL
-        value: https://api.dev.p4pa.pagopa.it/pu/bff/organizations
+        value: https://api.dev.p4pa.pagopa.it
       - name: TEMPORAL_BASE_URL
         value: https://web.temporal.internal.dev.p4pa.pagopa.it
       - name: DASHBOARD_URL
@@ -64,7 +64,7 @@ variables:
         value: $(UAT_AZURE_SERVICE_CONNECTION_NAME)
 
       - name: BASE_URL
-        value: https://api.uat.p4pa.pagopa.it/pu/bff/organizations
+        value: https://api.uat.p4pa.pagopa.it
       - name: TEMPORAL_BASE_URL
         value: https://web.temporal.internal.uat.p4pa.pagopa.it
       - name: DASHBOARD_URL
@@ -166,9 +166,6 @@ jobs:
                   exit 1
                 fi
                 echo "Generated file to upload: $FILE_TO_UPLOAD"
-                
-                echo curl -s --location --globoff '${{ variables.BASE_URL }}/pu/fileshare/organization/$ORGANIZATION_ID/ingestionflowfiles?ingestionFlowFileType=${{ parameters.FILE_TYPE }}&fileOrigin=SIL' \
-                    --form "ingestionFlowFile=@\"./$FILE_TO_UPLOAD\""
                 
                 IMPORT_RESPONSE=`curl -s --location --globoff '${{ variables.BASE_URL }}/pu/fileshare/organization/$ORGANIZATION_ID/ingestionflowfiles?ingestionFlowFileType=${{ parameters.FILE_TYPE }}&fileOrigin=SIL' \
                   --header 'Authorization: Bearer $ACCESS_TOKEN' \
