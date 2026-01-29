@@ -157,7 +157,7 @@ jobs:
                   echo $USERINFO_RESPONSE
                   exit 1
                 fi
-                echo "Obtained accessToken for organization: ORGANIZATION_ID"
+                echo "Obtained accessToken for organization: $ORGANIZATION_ID"
                 
                 PY_SCRIPT=./src/generateImportFile_${{ parameters.FILE_TYPE }}.py
                 chmod +x $PY_SCRIPT
