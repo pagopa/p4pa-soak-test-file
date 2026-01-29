@@ -144,9 +144,7 @@ jobs:
                      -d ""`
                 ACCESS_TOKEN=$(echo $AUTH_RESPONSE | jq .access_token)
                 
-                mkdir results
-                cd ./results
-                PY_SCRIPT=../src/generateImportFile_${{ parameters.FILE_TYPE }}.py
+                PY_SCRIPT=./src/generateImportFile_${{ parameters.FILE_TYPE }}.py
                 chmod +x $PY_SCRIPT
                 FILE_TO_UPLOAD=`python3 -m pipenv run $PY_SCRIPT ${{ variables.FILE_VERSION }} ${{ parameters.N_ROWS }}`
                 
