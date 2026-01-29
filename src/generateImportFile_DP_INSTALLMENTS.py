@@ -159,7 +159,7 @@ class CSVRow:
     def HEADER_FIELDS(self):
         return self._HEADER_FIELDS
 
-def create_installments_rows(num_rows: int) -> list:
+def create_installments_rows(num_rows: int, dp_type_org_code: str) -> list:
     installments_rows = []
     due_date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
 
@@ -172,6 +172,7 @@ def create_installments_rows(num_rows: int) -> list:
       row.dueDate = due_date
       row.amount = str(random.randint(1, 200))
       row.remittanceInformation = f'Feature test installment {str(i)}'
+      row.debtPositionTypeCode = dp_type_org_code or row.debtPositionTypeCode
 
       installments_rows.append(row)
 
@@ -209,8 +210,8 @@ def to_csv_lines(csv_rows: list[CSVRow], csv_version: str, with_header=True) -> 
     return lines
 
 
-def create_ingestion_flow_file(num_rows, csv_version):
-    installments_rows = create_installments_rows(num_rows=num_rows)
+def create_ingestion_flow_file(num_rows, csv_version, dp_type_org_code):
+    installments_rows = create_installments_rows(num_rows=num_rows, dp_type_org_code=dp_type_org_code)
 
     filename = f'ImportTest_{datetime.now().strftime("%Y%m%d%H%M%S")}_{csv_version}'
     zip_file_path = f'{filename}.zip'
@@ -228,6 +229,7 @@ def create_ingestion_flow_file(num_rows, csv_version):
 def main():
     version = str(sys.argv[1])
     num_rows = int(sys.argv[2])
+    dp_type_org_code = str(sys.argv[3])
 
     # Validazione input
     error = False
@@ -240,7 +242,7 @@ def main():
 
     # Genera il file
     if not error:
-      zip_file_path = create_ingestion_flow_file(num_rows, version)
+      zip_file_path = create_ingestion_flow_file(num_rows, version, dp_type_org_code)
 
       print(zip_file_path)
 
