@@ -150,10 +150,11 @@ jobs:
                 
                 USERINFO_RESPONSE=`curl -s --location --request GET \
                   '${{ variables.BASE_URL }}/pu/auth/oauth/userinfo' \
-                  --header 'Authorization: Bearer $ACCESS_TOKEN'`
+                  --header "Authorization: Bearer $ACCESS_TOKEN"`
                 ORGANIZATION_ID=$(echo $USERINFO_RESPONSE | jq '.organizations [0].organizationId')
                 if [[ -z "${ORGANIZATION_ID}" ]]; then
                   echo "Cannot obtain organizationId!"
+                  echo $USERINFO_RESPONSE
                   exit 1
                 fi
                 echo "Obtained accessToken for organization: ORGANIZATION_ID"
@@ -168,7 +169,7 @@ jobs:
                 echo "Generated file to upload: $FILE_TO_UPLOAD"
                 
                 IMPORT_RESPONSE=`curl -s --location --globoff '${{ variables.BASE_URL }}/pu/fileshare/organization/$ORGANIZATION_ID/ingestionflowfiles?ingestionFlowFileType=${{ parameters.FILE_TYPE }}&fileOrigin=SIL' \
-                  --header 'Authorization: Bearer $ACCESS_TOKEN' \
+                  --header "Authorization: Bearer $ACCESS_TOKEN" \
                     --form "ingestionFlowFile=@\"./$FILE_TO_UPLOAD\""`
                 if [[ -z "${IMPORT_RESPONSE}" ]]; then
                   echo "No body returned from upload invoke!"
