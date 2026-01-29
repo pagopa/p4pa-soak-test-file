@@ -143,6 +143,19 @@ jobs:
                      '${{ variables.BASE_URL }}/pu/auth/oauth/token?client_id=piattaforma-unitaria_${{ parameters.ORG_IPA_CODE }}&grant_type=client_credentials&scope=openid&client_secret=${{ variables.CLIENT_SECRET_PU_ENV }}' \
                      -d ""`
                 ACCESS_TOKEN=$(echo $AUTH_RESPONSE | jq .access_token)
+                if [[ -z "${ACCESS_TOKEN}" ]]; then
+                  echo "Cannot obtain an access token!"
+                  exit 1
+                fi
+                
+                USERINFO_RESPONSE=`curl -s --location --request GET \
+                  '${{ variables.BASE_URL }}/pu/auth/oauth/userinfo' \
+                  --header 'Authorization: Bearer $ACCESS_TOKEN'`
+                ORGANIZATION_ID=$(echo $USERINFO_RESPONSE | jq '.organizations [0].organizationId')
+                if [[ -z "${ORGANIZATION_ID}" ]]; then
+                  echo "Cannot obtain organizationId!"
+                  exit 1
+                fi
                 
                 PY_SCRIPT=./src/generateImportFile_${{ parameters.FILE_TYPE }}.py
                 chmod +x $PY_SCRIPT
@@ -164,6 +177,10 @@ jobs:
                 fi
                 
                 INGESTION_FLOW_FILE_ID=$(echo IMPORT_RESPONSE | jq .ingestionFlowFileId)
+                if [[ -z "${INGESTION_FLOW_FILE_ID}" ]]; then
+                  echo "Cannot read ingestionFlowFileId from response!"
+                  exit 1
+                fi
                 
                 echo Imported ${{ parameters.FILE_TYPE }} with ingestionFlowFileId $INGESTION_FLOW_FILE_ID
                 echo Visit the following URL to monitor the import process:
