@@ -55,7 +55,7 @@ variables:
       - name: DASHBOARD_URL
         value: https://pagopa.atlassian.net/wiki/spaces/SPAC/pages/2565242887/PU+-+Soak+tests+-+API#:~:text=DEV%3A-,OPEX%20Workbook,-UAT%3A%20OPEX
 
-  - ${{ else }}:
+  - ${{ elseif eq(parameters.TARGET_ENV, 'uat') }}:
       - name: selfHostedAgentPool
         value: $(UAT_AGENT_POOL)
       - name: keyVaultName
@@ -98,7 +98,7 @@ jobs:
               name: fetchSecretFromKeyVault
               displayName: 'Fetch Secret from Key Vault using Azure CLI'
               inputs:
-                azureSubscription: '${{ variables.azureServiceConnection }}'
+                azureSubscription: '${{ variables.azureServiceConnectionName }}'
                 scriptType: 'bash'
                 scriptLocation: 'inlineScript'
                 inlineScript: |
