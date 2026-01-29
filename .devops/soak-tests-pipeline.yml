@@ -146,7 +146,9 @@ jobs:
                 
                 mkdir results
                 cd ./results
-                FILE_TO_UPLOAD=`python3 -m pipenv run ../src/generateImportFile_${{ parameters.FILE_TYPE }}.py ${{ variables.FILE_VERSION }} ${{ parameters.N_ROWS }}`
+                PY_SCRIPT=../src/generateImportFile_${{ parameters.FILE_TYPE }}.py
+                chmod +x $PY_SCRIPT
+                FILE_TO_UPLOAD=`python3 -m pipenv run $PY_SCRIPT ${{ variables.FILE_VERSION }} ${{ parameters.N_ROWS }}`
                 
                 IMPORT_RESPONSE=`curl -s --location --globoff '${{ variables.BASE_URL }}/pu/fileshare/organization/$ORGANIZATION_ID/ingestionflowfiles?ingestionFlowFileType=${{ parameters.FILE_TYPE }}&fileOrigin=SIL' \
                   --header 'Authorization: Bearer $ACCESS_TOKEN' \
