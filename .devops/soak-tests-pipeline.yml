@@ -139,8 +139,9 @@ jobs:
               displayName: Read secrets
 
             - script: |
+                CLIENT_SECRET=$(CLIENT_SECRET_PU_ENV)
                 AUTH_RESPONSE=`curl -s --location --request POST \
-                     '${{ variables.BASE_URL }}/pu/auth/oauth/token?client_id=piattaforma-unitaria_${{ parameters.ORG_IPA_CODE }}&grant_type=client_credentials&scope=openid&client_secret=$(CLIENT_SECRET_PU_ENV)' \
+                     "${{ variables.BASE_URL }}/pu/auth/oauth/token?client_id=piattaforma-unitaria_${{ parameters.ORG_IPA_CODE }}&grant_type=client_credentials&scope=openid&client_secret=$CLIENT_SECRET" \
                      -d ""`
                 ACCESS_TOKEN=$(echo $AUTH_RESPONSE | jq .access_token)
                 if [ "$ACCESS_TOKEN" == "null" ]; then
