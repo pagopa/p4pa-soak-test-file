@@ -168,7 +168,7 @@ jobs:
                 fi
                 echo "Generated file to upload: $FILE_TO_UPLOAD"
                 
-                IMPORT_RESPONSE=`curl -s --location --globoff '${{ variables.BASE_URL }}/pu/fileshare/organization/$ORGANIZATION_ID/ingestionflowfiles?ingestionFlowFileType=${{ parameters.FILE_TYPE }}&fileOrigin=SIL' \
+                IMPORT_RESPONSE=`curl -s --location --globoff "${{ variables.BASE_URL }}/pu/fileshare/organization/$ORGANIZATION_ID/ingestionflowfiles?ingestionFlowFileType=${{ parameters.FILE_TYPE }}&fileOrigin=SIL" \
                   --header "Authorization: Bearer $ACCESS_TOKEN" \
                     --form "ingestionFlowFile=@\"./$FILE_TO_UPLOAD\""`
                 if [[ -z "${IMPORT_RESPONSE}" ]]; then
