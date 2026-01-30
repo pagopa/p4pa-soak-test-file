@@ -8,6 +8,14 @@ FILE_VERSION="$5"
 N_ROWS="$6"
 DP_TYPE_ORG_CODE="$7"
 
+echo $BASE_URL
+echo $ORG_IPA_CODE
+echo $CLIENT_SECRET_PU
+echo $FILE_TYPE
+echo $FILE_VERSION
+echo $N_ROWS
+echo $DP_TYPE_ORG_CODE
+
 function print_help() {
    echo "To run the script you have to provide the following parameters:"
    echo "1. BASE_URL"
@@ -30,7 +38,6 @@ function checkEnv() {
 }
 
 checkEnv BASE_URL
-echo $BASE_URL
 checkEnv ORG_IPA_CODE
 checkEnv CLIENT_SECRET_PU
 checkEnv FILE_TYPE
