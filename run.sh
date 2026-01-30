@@ -1,20 +1,12 @@
 #!/bin/bash
 
-BASE_URL="$1"
-ORG_IPA_CODE="$2"
-CLIENT_SECRET_PU="$3"
-FILE_TYPE="$4"
-FILE_VERSION="$5"
-N_ROWS="$6"
-DP_TYPE_ORG_CODE="$7"
-
-echo $BASE_URL
-echo $ORG_IPA_CODE
-echo $CLIENT_SECRET_PU
-echo $FILE_TYPE
-echo $FILE_VERSION
-echo $N_ROWS
-echo $DP_TYPE_ORG_CODE
+export BASE_URL="$1"
+export ORG_IPA_CODE="$2"
+export CLIENT_SECRET_PU="$3"
+export FILE_TYPE="$4"
+export FILE_VERSION="$5"
+export N_ROWS="$6"
+export DP_TYPE_ORG_CODE="$7"
 
 function print_help() {
    echo "To run the script you have to provide the following parameters:"
