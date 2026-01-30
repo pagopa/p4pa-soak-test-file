@@ -30,6 +30,7 @@ function checkEnv() {
 }
 
 checkEnv BASE_URL
+echo $BASE_URL
 checkEnv ORG_IPA_CODE
 checkEnv CLIENT_SECRET_PU
 checkEnv FILE_TYPE
