@@ -39,10 +39,14 @@ parameters:
 variables:
   - name: fileVersion_DP_INSTALLMENTS
     value: 2_0-eng
+  - name: wfType_DP_INSTALLMENTS
+    value: DebtPositionIngestionFlowWF
 
-  # Resolved list of k6 script to execute
+  # Resolved variables based on selected file type
   - name: FILE_VERSION
     value: ${{ variables[format('fileVersion_{0}', parameters.FILE_TYPE)] }}
+  - name: WF_TYPE
+    value: ${{ variables[format('wfType_{0}', parameters.FILE_TYPE)] }}
 
   # Setting env specific settings
   - ${{ if eq(parameters.TARGET_ENV, 'dev') }}:
@@ -58,7 +62,7 @@ variables:
       - name: TEMPORAL_BASE_URL
         value: https://web.temporal.internal.dev.p4pa.pagopa.it
       - name: DASHBOARD_URL
-        value: https://pagopa.atlassian.net/wiki/spaces/SPAC/pages/2565242887/PU+-+Soak+tests+-+API#:~:text=DEV%3A-,OPEX%20Workbook,-UAT%3A%20OPEX
+        value: https://portal.azure.com/#@pagopait.onmicrosoft.com/resource/subscriptions/00288c16-f581-4bb4-9c52-6954dce102f4/resourceGroups/p4pa-d-itn-payhub-workbook-rg/providers/Microsoft.Insights/workbooks/10f6d152-fe64-5e8f-8185-9ba2aa8805c4/workbook
 
   - ${{ elseif eq(parameters.TARGET_ENV, 'uat') }}:
       - name: selfHostedAgentPool
@@ -191,7 +195,7 @@ jobs:
                 
                 echo Imported ${{ parameters.FILE_TYPE }} with ingestionFlowFileId $INGESTION_FLOW_FILE_ID
                 echo Visit the following URL to monitor the import process:
-                echo ${{ variables.TEMPORAL_BASE_URL }}/namespaces/pu/workflows/DebtPositionIngestionFlowWF-$INGESTION_FLOW_FILE_ID
+                echo ${{ variables.TEMPORAL_BASE_URL }}/namespaces/pu/workflows/${{ variables.WF_TYPE }}-$INGESTION_FLOW_FILE_ID
                 echo ""
                 echo Visit the following URL to monitor the application:
                 echo ${{ variables.DASHBOARD_URL }}
