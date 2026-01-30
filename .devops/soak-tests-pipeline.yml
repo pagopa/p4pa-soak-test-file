@@ -150,16 +150,22 @@ jobs:
             - script: |
                 chmod +x ./run.sh
                 RESULT=`./run.sh \
-                    "${{ variables.BASE_URL  }}" \
-                    "${{ parameters.ORG_IPA_CODE  }}" \
+                    "${{ variables.BASE_URL }}" \
+                    "${{ parameters.ORG_IPA_CODE }}" \
                     "$(CLIENT_SECRET_PU_ENV)" \
-                    "${{ parameters.FILE_TYPE  }}" \
-                    "${{ variables.FILE_VERSION  }}" \
-                    "${{ parameters.N_ROWS  }}" \
-                    "${{ parameters.DP_TYPE_ORG_CODE  }}" \
+                    "${{ parameters.FILE_TYPE }}" \
+                    "${{ variables.FILE_VERSION }}" \
+                    "${{ parameters.N_ROWS }}" \
+                    "${{ parameters.DP_TYPE_ORG_CODE }}" \
                 `
-                echo $RESULT
-                $INGESTION_FLOW_FILE_ID=`echo $RESULT | awk '$4 == "ingestionFlowFileId" {print $5}'`
+                RETURNED_CODE=$?
+                
+                echo -e "$RESULT"
+                if [ $RETURNED_CODE -ne 0 ]; then
+                  exit 1
+                fi
+                
+                INGESTION_FLOW_FILE_ID=`echo -e "$RESULT" | awk '$4 == "ingestionFlowFileId" {print $5}'`
                 
                 echo Visit the following URL to monitor the import process:
                 echo ${{ variables.TEMPORAL_BASE_URL }}/namespaces/pu/workflows/${{ variables.WF_TYPE }}-$INGESTION_FLOW_FILE_ID
