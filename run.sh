@@ -36,6 +36,12 @@ checkEnv FILE_TYPE
 checkEnv FILE_VERSION
 checkEnv N_ROWS
 
+PY_SCRIPT=$(find "./src/generateImportFile_$FILE_TYPE.py" 2>/dev/null)
+if [ ! -f "$PY_SCRIPT" ]; then
+  echo "Cannot find python script to generate import file for type $FILE_TYPE!"
+  exit 1
+fi
+
 AUTH_RESPONSE=$(curl -s --location --request POST \
                "$BASE_URL/pu/auth/oauth/token?client_id=piattaforma-unitaria_$ORG_IPA_CODE&grant_type=client_credentials&scope=openid&client_secret=$CLIENT_SECRET_PU" \
                -d "")
@@ -56,7 +62,6 @@ if [[ -z "${ORGANIZATION_ID}" ]]; then
 fi
 echo "Obtained accessToken for organization: $ORGANIZATION_ID"
 
-PY_SCRIPT="./src/generateImportFile_$FILE_TYPE.py"
 chmod +x "$PY_SCRIPT"
 FILE_TO_UPLOAD=$(python3 -m pipenv run python "$PY_SCRIPT" "$FILE_VERSION" "$N_ROWS" "$DP_TYPE_ORG_CODE")
 if [[ -z "${FILE_TO_UPLOAD}" ]]; then
