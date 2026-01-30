@@ -148,52 +148,25 @@ jobs:
               displayName: Read secrets
 
             - script: |
-                AUTH_RESPONSE=`curl -s --location --request POST \
-                     '${{ variables.BASE_URL }}/pu/auth/oauth/token?client_id=piattaforma-unitaria_${{ parameters.ORG_IPA_CODE }}&grant_type=client_credentials&scope=openid&client_secret=$(CLIENT_SECRET_PU_ENV)' \
-                     -d ""`
-                ACCESS_TOKEN=$(echo $AUTH_RESPONSE | jq -r .access_token)
-                if [ "$ACCESS_TOKEN" == "null" ]; then
-                  echo "Cannot obtain an access token!"
+                chmod +x ./run.sh
+                RESULT=`./run.sh \
+                    "${{ variables.BASE_URL }}" \
+                    "${{ parameters.ORG_IPA_CODE }}" \
+                    "$(CLIENT_SECRET_PU_ENV)" \
+                    "${{ parameters.FILE_TYPE }}" \
+                    "${{ variables.FILE_VERSION }}" \
+                    "${{ parameters.N_ROWS }}" \
+                    "${{ parameters.DP_TYPE_ORG_CODE }}" \
+                `
+                RETURNED_CODE=$?
+                
+                echo -e "$RESULT"
+                if [ $RETURNED_CODE -ne 0 ]; then
                   exit 1
                 fi
                 
-                USERINFO_RESPONSE=`curl -s --location --request GET \
-                  '${{ variables.BASE_URL }}/pu/auth/oauth/userinfo' \
-                  --header "Authorization: Bearer $ACCESS_TOKEN"`
-                ORGANIZATION_ID=$(echo $USERINFO_RESPONSE | jq '.organizations [0].organizationId')
-                if [[ -z "${ORGANIZATION_ID}" ]]; then
-                  echo "Cannot obtain organizationId!"
-                  echo $USERINFO_RESPONSE
-                  exit 1
-                fi
-                echo "Obtained accessToken for organization: $ORGANIZATION_ID"
+                INGESTION_FLOW_FILE_ID=`echo -e "$RESULT" | awk '$4 == "ingestionFlowFileId" {print $5}'`
                 
-                PY_SCRIPT=./src/generateImportFile_${{ parameters.FILE_TYPE }}.py
-                chmod +x $PY_SCRIPT
-                FILE_TO_UPLOAD=`python3 -m pipenv run python $PY_SCRIPT ${{ variables.FILE_VERSION }} ${{ parameters.N_ROWS }} ${{ parameters.DP_TYPE_ORG_CODE }}`
-                if [[ -z "${FILE_TO_UPLOAD}" ]]; then
-                  echo "Cannot generate file to upload!"
-                  exit 1
-                fi
-                echo "Generated file to upload: $FILE_TO_UPLOAD"
-                
-                IMPORT_RESPONSE=`curl -s --location --globoff "${{ variables.BASE_URL }}/pu/fileshare/organization/$ORGANIZATION_ID/ingestionflowfiles?ingestionFlowFileType=${{ parameters.FILE_TYPE }}&fileOrigin=SIL" \
-                  --header "Authorization: Bearer $ACCESS_TOKEN" \
-                    --form "ingestionFlowFile=@\"./$FILE_TO_UPLOAD\""`
-                if [[ -z "${IMPORT_RESPONSE}" ]]; then
-                  echo "No body returned from upload invoke!"
-                  exit 1
-                else
-                  echo "Import response: $IMPORT_RESPONSE"
-                fi
-                
-                INGESTION_FLOW_FILE_ID=$(echo $IMPORT_RESPONSE | jq .ingestionFlowFileId)
-                if [[ -z "${INGESTION_FLOW_FILE_ID}" ]]; then
-                  echo "Cannot read ingestionFlowFileId from response!"
-                  exit 1
-                fi
-                
-                echo Imported ${{ parameters.FILE_TYPE }} with ingestionFlowFileId $INGESTION_FLOW_FILE_ID
                 echo Visit the following URL to monitor the import process:
                 echo ${{ variables.TEMPORAL_BASE_URL }}/namespaces/pu/workflows/${{ variables.WF_TYPE }}-$INGESTION_FLOW_FILE_ID
                 echo ""
