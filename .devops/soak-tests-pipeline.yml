@@ -1,0 +1,203 @@
+# Run Automated Test in UAT environment
+
+trigger: none
+
+pool:
+  vmImage: ubuntu-22.04
+
+parameters:
+  - name: "TARGET_ENV"
+    displayName: "Target Environment"
+    type: string
+    default: "UAT"
+    values:
+      - "DEV"
+      - "UAT"
+
+  - name: "FILE_TYPE"
+    displayName: "IngestionFlowFileType"
+    type: string
+    default: "DP_INSTALLMENTS"
+    values:
+      - DP_INSTALLMENTS
+
+  - name: "N_ROWS"
+    displayName: "N. rows"
+    type: number
+    default: 1000
+
+  - name: "ORG_IPA_CODE"
+    displayName: "organizationIpaCode"
+    type: string
+    default: "IPA_TEST_2"
+
+  - name: "DP_TYPE_ORG_CODE"
+    displayName: "dpTypeOrgCode"
+    type: string
+    default: "FEATURE_TEST"
+
+variables:
+  - name: fileVersion_DP_INSTALLMENTS
+    value: 2_0-eng
+  - name: wfType_DP_INSTALLMENTS
+    value: DebtPositionIngestionFlowWF
+
+  # Resolved variables based on selected file type
+  - name: FILE_VERSION
+    value: ${{ variables[format('fileVersion_{0}', parameters.FILE_TYPE)] }}
+  - name: WF_TYPE
+    value: ${{ variables[format('wfType_{0}', parameters.FILE_TYPE)] }}
+
+  # Setting env specific settings
+  - ${{ if eq(parameters.TARGET_ENV, 'dev') }}:
+      - name: selfHostedAgentPool
+        value: $(DEV_AGENT_POOL)
+      - name: keyVaultName
+        value: $(DEV_KV_NAME)
+      - name: azureServiceConnectionName
+        value: $(DEV_AZURE_SERVICE_CONNECTION_NAME)
+
+      - name: BASE_URL
+        value: https://api.dev.p4pa.pagopa.it
+      - name: TEMPORAL_BASE_URL
+        value: https://web.temporal.internal.dev.p4pa.pagopa.it
+      - name: DASHBOARD_URL
+        value: https://portal.azure.com/#@pagopait.onmicrosoft.com/resource/subscriptions/00288c16-f581-4bb4-9c52-6954dce102f4/resourceGroups/p4pa-d-itn-payhub-workbook-rg/providers/Microsoft.Insights/workbooks/10f6d152-fe64-5e8f-8185-9ba2aa8805c4/workbook
+
+  - ${{ elseif eq(parameters.TARGET_ENV, 'uat') }}:
+      - name: selfHostedAgentPool
+        value: $(UAT_AGENT_POOL)
+      - name: keyVaultName
+        value: $(UAT_KV_NAME)
+      - name: azureServiceConnectionName
+        value: $(UAT_AZURE_SERVICE_CONNECTION_NAME)
+
+      - name: BASE_URL
+        value: https://api.uat.p4pa.pagopa.it
+      - name: TEMPORAL_BASE_URL
+        value: https://web.temporal.internal.uat.p4pa.pagopa.it
+      - name: DASHBOARD_URL
+        value: https://portal.azure.com/#@pagopait.onmicrosoft.com/resource/subscriptions/1b06ce19-c192-49b3-8418-0f5bf013ea5f/resourceGroups/p4pa-u-itn-payhub-workbook-rg/providers/Microsoft.Insights/workbooks/10f6d152-fe64-5e8f-8185-9ba2aa8805c4/workbook
+
+jobs:
+  - deployment: SoakTest
+    displayName: "Loading a '${{ parameters.FILE_TYPE }}' file having (${{ parameters.N_ROWS }}) rows on ${{ parameters.TARGET_ENV }} using organization ${{ parameters.ORG_IPA_CODE }}"
+    pool:
+      name: $(selfHostedAgentPool)
+    environment: ${{ upper(parameters.TARGET_ENV) }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+              displayName: Checkout
+              fetchDepth: 1
+
+            - script: |
+                python3 --version
+                pip3 --version
+              displayName: "Display Python version"
+            - script: |
+                python3 --version
+                python3 -m pip install --user pipenv
+                python3 -m pipenv sync
+              displayName: "Install requirements"
+
+            - task: AzureCLI@2
+              name: fetchSecretFromKeyVault
+              displayName: 'Fetch Secret from Key Vault using Azure CLI'
+              inputs:
+                azureSubscription: '${{ variables.azureServiceConnectionName }}'
+                scriptType: 'bash'
+                scriptLocation: 'inlineScript'
+                inlineScript: |
+                  echo "🔐 Fetching secret from Key Vault..."
+
+                  # Create directory for environment file
+                  mkdir -p $(Pipeline.Workspace)/postman
+
+                  # Fetch secret and save to file
+                  az keyvault secret show \
+                    --name "postman-environment" \
+                    --vault-name "${{ variables.keyVaultName }}" \
+                    --query 'value' -o tsv > $(Pipeline.Workspace)/postman/environment.json
+
+                  if [ $? -ne 0 ]; then
+                    echo "##[error]Failed to fetch secret from Key Vault"
+                    exit 1
+                  fi
+
+                  # Validate JSON format
+                  if ! jq empty $(Pipeline.Workspace)/postman/environment.json 2>/dev/null; then
+                    echo "##[error]Invalid JSON format in environment file"
+                    exit 1
+                  fi
+
+                  echo "##vso[task.setvariable variable=postmanEnvFile]$(Pipeline.Workspace)/postman/environment.json"
+                  echo "✅ Secret fetched and validated successfully"
+
+            - script: |
+                function extractSecret() {
+                  SECRET_KEY=$1
+                  ENV_NAME=$2
+                  VALUE=$(jq -r ".values [] | select(.key==\"$SECRET_KEY\") | .value"  $(postmanEnvFile))
+                  echo "##vso[task.setvariable variable=$ENV_NAME]$VALUE"
+                }
+                
+                extractSecret client_secret-pu CLIENT_SECRET_PU_ENV
+              displayName: Read secrets
+
+            - script: |
+                AUTH_RESPONSE=`curl -s --location --request POST \
+                     '${{ variables.BASE_URL }}/pu/auth/oauth/token?client_id=piattaforma-unitaria_${{ parameters.ORG_IPA_CODE }}&grant_type=client_credentials&scope=openid&client_secret=$(CLIENT_SECRET_PU_ENV)' \
+                     -d ""`
+                ACCESS_TOKEN=$(echo $AUTH_RESPONSE | jq -r .access_token)
+                if [ "$ACCESS_TOKEN" == "null" ]; then
+                  echo "Cannot obtain an access token!"
+                  exit 1
+                fi
+                
+                USERINFO_RESPONSE=`curl -s --location --request GET \
+                  '${{ variables.BASE_URL }}/pu/auth/oauth/userinfo' \
+                  --header "Authorization: Bearer $ACCESS_TOKEN"`
+                ORGANIZATION_ID=$(echo $USERINFO_RESPONSE | jq '.organizations [0].organizationId')
+                if [[ -z "${ORGANIZATION_ID}" ]]; then
+                  echo "Cannot obtain organizationId!"
+                  echo $USERINFO_RESPONSE
+                  exit 1
+                fi
+                echo "Obtained accessToken for organization: $ORGANIZATION_ID"
+                
+                PY_SCRIPT=./src/generateImportFile_${{ parameters.FILE_TYPE }}.py
+                chmod +x $PY_SCRIPT
+                FILE_TO_UPLOAD=`python3 -m pipenv run python $PY_SCRIPT ${{ variables.FILE_VERSION }} ${{ parameters.N_ROWS }} ${{ parameters.DP_TYPE_ORG_CODE }}`
+                if [[ -z "${FILE_TO_UPLOAD}" ]]; then
+                  echo "Cannot generate file to upload!"
+                  exit 1
+                fi
+                echo "Generated file to upload: $FILE_TO_UPLOAD"
+                
+                IMPORT_RESPONSE=`curl -s --location --globoff "${{ variables.BASE_URL }}/pu/fileshare/organization/$ORGANIZATION_ID/ingestionflowfiles?ingestionFlowFileType=${{ parameters.FILE_TYPE }}&fileOrigin=SIL" \
+                  --header "Authorization: Bearer $ACCESS_TOKEN" \
+                    --form "ingestionFlowFile=@\"./$FILE_TO_UPLOAD\""`
+                if [[ -z "${IMPORT_RESPONSE}" ]]; then
+                  echo "No body returned from upload invoke!"
+                  exit 1
+                else
+                  echo "Import response: $IMPORT_RESPONSE"
+                fi
+                
+                INGESTION_FLOW_FILE_ID=$(echo $IMPORT_RESPONSE | jq .ingestionFlowFileId)
+                if [[ -z "${INGESTION_FLOW_FILE_ID}" ]]; then
+                  echo "Cannot read ingestionFlowFileId from response!"
+                  exit 1
+                fi
+                
+                echo Imported ${{ parameters.FILE_TYPE }} with ingestionFlowFileId $INGESTION_FLOW_FILE_ID
+                echo Visit the following URL to monitor the import process:
+                echo ${{ variables.TEMPORAL_BASE_URL }}/namespaces/pu/workflows/${{ variables.WF_TYPE }}-$INGESTION_FLOW_FILE_ID
+                echo ""
+                echo Visit the following URL to monitor the application:
+                echo ${{ variables.DASHBOARD_URL }}
+
+              displayName: Generating & importing file
