@@ -118,7 +118,7 @@ def main():
     # Validazione input
     error = False
     if num_rows <= 0:
-        print(f"⚠️ Il numero di righe deve essere maggiore di 0.")
+        print(f"⚠️ Il numero di righe deve essere positivo.")
         error = True
 
     if not error:
