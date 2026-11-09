@@ -1,0 +1,27 @@
+{
+  "f24Simplified": {
+    "taxPayer": {
+      "taxCode": "FRRMRA90A41F205D",
+      "personalData": {
+        "surname": "FERRERO",
+        "name": "MARIA",
+        "birthDate": "01-01-1990",
+        "sex": "F",
+        "birthPlace": "MILANO",
+        "birthProvince": "MI"
+      }
+    },
+    "payments": {
+      "records": [
+        {
+          "applyCost": true,
+          "section": "EL",
+          "municipality": "H501",
+          "taxType": "3944",
+          "year": "2026",
+          "debit": "10000"
+        }
+      ]
+    }
+  }
+}
